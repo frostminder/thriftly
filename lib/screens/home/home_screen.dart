@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/category_chip.dart';
 import '../../widgets/product_card.dart';
 import '../../models/product_model.dart';
+import '../../widgets/promo_carousel.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,10 +12,36 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController _searchController = TextEditingController();
+  String searchQuery = "";
 
   bool isLoading = false;
   String? error;
+
+  bool _isSearchOpen = false;
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
+
+  void _toggleSearch() {
+    setState(() {
+      _isSearchOpen = !_isSearchOpen;
+      if (_isSearchOpen) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          _focusNode.requestFocus();
+        });
+      } else {
+        _searchController.clear();
+        _focusNode.unfocus();
+        searchQuery = "";
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   // Temporary mock data (later from Supabase)
   final List<Product> products = [
@@ -45,8 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 12),
             Image.asset(
               'assets/images/thriftly_logo.png',
-              width: 32,
-              height: 32,
+              width: 46,
+              height: 46,
             ),
             const SizedBox(width: 8),
             const Text(
@@ -60,10 +87,45 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
-            onPressed: () {},
+          // Animated search container
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            width: _isSearchOpen ? 250 : 50,
+            height: 40,
+            curve: Curves.easeInOut,
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.search, color: Colors.black),
+                  onPressed: _toggleSearch,
+                ),
+                if (_isSearchOpen)
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _focusNode,
+                      decoration: const InputDecoration(
+                        hintText: "Search",
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 7.5),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          searchQuery = value; // your filter logic
+                        });
+                      },
+                    ),
+                  ),
+              ],
+            ),
           ),
+
+          // Cart Icon
           Stack(
             children: [
               IconButton(
@@ -97,38 +159,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// SEARCH BAR
-            TextField(
-              controller: _searchController,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                hintText: 'What are you looking for?',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 18),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-            ),
-
             const SizedBox(height: 24),
 
-            /// PROMO SECTION (placeholder)
-            Container(
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.deepPurple.shade100,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Center(
-                child: Text(
-                  '🔥 Promo Carousel',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
+            // Promo Slider
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: const PromoCarousel(),
             ),
 
             const SizedBox(height: 32),
